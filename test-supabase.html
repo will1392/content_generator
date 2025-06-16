@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Test Supabase Connection</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="createTestProject()">Create Test Project</button>
+    <button onclick="testContentStages()">Test Content Stages Table</button>
+    <pre id="result"></pre>
+
+    <script>
+    const supabaseUrl = 'https://libmlykdoxlmcyjtdsvs.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpYm1seWtkb3hsbWN5anRkc3ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1MDE4MzEsImV4cCI6MjA2NTA3NzgzMX0.vhFcZdiogmO85g7lrXkfpP16xD1H146K6pyiSsvMygk';
+    
+    // Fixed: Use different variable name to avoid conflict
+    const sb = supabase.createClient(supabaseUrl, supabaseKey);
+    
+    async function testConnection() {
+        const result = document.getElementById('result');
+        try {
+            console.log('Testing connection...');
+            const { data, error } = await sb.from('projects').select('*').limit(1);
+            result.textContent = JSON.stringify({ data, error }, null, 2);
+        } catch (err) {
+            result.textContent = 'Error: ' + err.message;
+        }
+    }
+    
+    async function createTestProject() {
+        const result = document.getElementById('result');
+        try {
+            console.log('Creating test project...');
+            const { data, error } = await sb
+                .from('projects')
+                .insert({ 
+                    keyword: 'test keyword', 
+                    status: 'research',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
+                .select()
+                .single();
+            result.textContent = JSON.stringify({ data, error }, null, 2);
+        } catch (err) {
+            result.textContent = 'Error: ' + err.message;
+        }
+    }
+    
+    async function testContentStages() {
+        const result = document.getElementById('result');
+        try {
+            console.log('Testing content_stages table...');
+            const { data, error } = await sb.from('content_stages').select('*').limit(1);
+            result.textContent = 'Content Stages Test:\n' + JSON.stringify({ data, error }, null, 2);
+        } catch (err) {
+            result.textContent = 'Content Stages Error: ' + err.message;
+        }
+    }
+    </script>
+</body>
+</html>
