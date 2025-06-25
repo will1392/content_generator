@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Download, RefreshCw, ArrowRight, Loader2, Volume2, FileAudio } from 'lucide-react';
+import { Play, Pause, Download, RefreshCw, ArrowRight, ArrowLeft, Loader2, Volume2, FileAudio, SkipForward } from 'lucide-react';
 import { AudioContent } from '../../types/project.types';
 import { toast } from 'react-toastify';
 
@@ -8,6 +8,7 @@ interface AudioPlayerProps {
   isLoading: boolean;
   onRegenerate: () => Promise<void>;
   onContinue: () => void;
+  onPrevious?: () => void;
 }
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({
@@ -15,6 +16,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   isLoading,
   onRegenerate,
   onContinue,
+  onPrevious,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -105,19 +107,40 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   if (!audio) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600 mb-4">No audio available</p>
-        <button
-          onClick={onRegenerate}
-          disabled={isLoading}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
+        <p className="text-gray-600 mb-6">No audio available</p>
+        <div className="flex items-center justify-center gap-4">
+          {onPrevious && (
+            <button
+              onClick={onPrevious}
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Previous
+            </button>
           )}
-          Generate Audio
-        </button>
+          <button
+            onClick={onRegenerate}
+            disabled={isLoading}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Generate Audio
+          </button>
+          <button
+            onClick={onContinue}
+            className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+          >
+            <SkipForward className="w-4 h-4 mr-2" />
+            Skip Audio
+          </button>
+        </div>
+        <p className="text-gray-500 text-sm mt-4">
+          You can generate audio now or skip to continue with images
+        </p>
       </div>
     );
   }
@@ -139,6 +162,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {onPrevious && (
+            <button
+              onClick={onPrevious}
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Previous
+            </button>
+          )}
           <button
             onClick={handleDownload}
             className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -214,8 +246,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               Audio Generated Successfully!
             </div>
             <p className="text-green-700 text-sm">
-              Audio was generated using Google Cloud Text-to-Speech API. 
-              You can play, pause, and download the audio file.
+              Audio was generated using the latest TTS technology. 
+              You can play, pause, download, regenerate the audio, or continue to the next step.
             </p>
           </div>
         </div>

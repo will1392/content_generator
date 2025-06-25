@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Folder, FileText, Plus, ChevronRight, ChevronDown, Clock, CheckCircle, Archive, Search } from 'lucide-react';
+import { Folder, FileText, Plus, ChevronRight, ChevronDown, Clock, CheckCircle, Archive, Search, Globe, ExternalLink, Map } from 'lucide-react';
 import { ClientProject, ProjectContent } from '../../types/client.types';
 
 interface ProjectOrganizerProps {
@@ -11,6 +11,7 @@ interface ProjectOrganizerProps {
   onSelectContent: (content: ProjectContent) => void;
   onCreateProject: () => void;
   onCreateContent: () => void;
+  onCreateTopicalMap?: () => void;
 }
 
 export const ProjectOrganizer: React.FC<ProjectOrganizerProps> = ({
@@ -21,7 +22,8 @@ export const ProjectOrganizer: React.FC<ProjectOrganizerProps> = ({
   onSelectProject,
   onSelectContent,
   onCreateProject,
-  onCreateContent
+  onCreateContent,
+  onCreateTopicalMap
 }) => {
   const [expandedProjects, setExpandedProjects] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -142,13 +144,37 @@ export const ProjectOrganizer: React.FC<ProjectOrganizerProps> = ({
                     {project.description && (
                       <p className="text-sm text-white/60 mt-0.5">{project.description}</p>
                     )}
+                    {project.website && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Globe className="w-3 h-3 text-white/40" />
+                        <a
+                          href={project.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-[#533de3] hover:text-[#4531b8] transition-colors flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {project.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(project.status)}
-                    <span className="text-xs text-white/40">
-                      {projectContents.length} items
-                    </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-1">
+                      {getStatusIcon(project.status)}
+                      <span className="text-xs text-white/60 capitalize">{project.status}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-white/40">
+                      <FileText className="w-3 h-3" />
+                      <span>{projectContents.length} content{projectContents.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    {projectContents.length > 0 && (
+                      <div className="text-xs text-white/40">
+                        {projectContents.filter(c => c.stage === 'complete').length} completed
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -192,9 +218,9 @@ export const ProjectOrganizer: React.FC<ProjectOrganizerProps> = ({
                       })
                     )}
                     
-                    {/* Add Content Button */}
+                    {/* Add Content Buttons */}
                     {isSelected && (
-                      <div className="p-3 pl-12">
+                      <div className="p-3 pl-12 flex gap-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -205,6 +231,19 @@ export const ProjectOrganizer: React.FC<ProjectOrganizerProps> = ({
                           <Plus className="w-3 h-3" />
                           Add Content
                         </button>
+                        
+                        {onCreateTopicalMap && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCreateTopicalMap();
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg text-purple-300 text-sm transition-colors"
+                          >
+                            <Map className="w-3 h-3" />
+                            Topical Map
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

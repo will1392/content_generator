@@ -1,14 +1,16 @@
 // components/stages/KeywordInput.tsx
 import React, { useState } from 'react';
-import { Search, Sparkles, AlertCircle } from 'lucide-react';
+import { Search, Sparkles, AlertCircle, Globe, Map, Target } from 'lucide-react';
 
 interface KeywordInputProps {
-  onSubmit: (keyword: string) => void;
+  onSubmit: (keyword: string, website?: string) => void;
+  onTopicalMapMode: () => void;
   isLoading: boolean;
 }
 
-export const KeywordInput: React.FC<KeywordInputProps> = ({ onSubmit, isLoading }) => {
+export const KeywordInput: React.FC<KeywordInputProps> = ({ onSubmit, onTopicalMapMode, isLoading }) => {
   const [keyword, setKeyword] = useState('');
+  const [website, setWebsite] = useState('');
   const [error, setError] = useState('');
 
   const validateKeyword = (value: string): boolean => {
@@ -28,7 +30,7 @@ export const KeywordInput: React.FC<KeywordInputProps> = ({ onSubmit, isLoading 
     e.preventDefault();
     
     if (validateKeyword(keyword)) {
-      onSubmit(keyword.trim());
+      onSubmit(keyword.trim(), website.trim() || undefined);
     }
   };
 
@@ -59,10 +61,38 @@ export const KeywordInput: React.FC<KeywordInputProps> = ({ onSubmit, isLoading 
                 AI Content Generator
               </h1>
               
-              <p className="text-lg text-gray-300 max-w-lg mx-auto">
-                Enter a keyword and let AI create comprehensive content including research, 
-                blog posts, podcasts, images, and social media captions.
+              <p className="text-lg text-gray-300 max-w-lg mx-auto mb-6">
+                Choose your content creation approach: generate single-keyword content or build topical authority with location-based strategies.
               </p>
+
+              {/* Mode Selection */}
+              <div className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto mb-8">
+                <div className="flex-1 p-6 bg-white/5 rounded-2xl border border-white/10 hover:border-primary/30 transition-all">
+                  <div className="text-center">
+                    <Target className="w-8 h-8 text-primary mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-white mb-2">Single Keyword</h3>
+                    <p className="text-white/60 text-sm mb-4">
+                      Generate comprehensive content for one specific keyword
+                    </p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={onTopicalMapMode}
+                  className="flex-1 p-6 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl border border-purple-500/30 hover:border-purple-500/50 transition-all transform hover:scale-[1.02]"
+                >
+                  <div className="text-center">
+                    <Map className="w-8 h-8 text-purple-400 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-white mb-2">Topical Authority</h3>
+                    <p className="text-white/60 text-sm mb-4">
+                      Build local SEO dominance with strategic keyword mapping
+                    </p>
+                    <div className="inline-flex items-center text-purple-300 text-sm font-medium">
+                      Try Topical Maps →
+                    </div>
+                  </div>
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -90,6 +120,29 @@ export const KeywordInput: React.FC<KeywordInputProps> = ({ onSubmit, isLoading 
                   `}
                   disabled={isLoading}
                   autoFocus
+                />
+              </div>
+
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Globe className="h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                </div>
+                
+                <input
+                  type="url"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder="Client website URL (optional)..."
+                  className="
+                    w-full pl-12 pr-4 py-4 text-lg text-white
+                    bg-white/5 backdrop-blur-xl
+                    border-2 rounded-xl
+                    placeholder-gray-400
+                    focus:outline-none focus:ring-4 focus:ring-primary/20
+                    transition-all duration-300
+                    border-white/10 focus:border-primary hover:border-white/20
+                  "
+                  disabled={isLoading}
                 />
               </div>
 

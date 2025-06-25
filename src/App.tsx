@@ -6,17 +6,20 @@ import { supabase } from './services/supabase.service';
 import { clientService } from './services/client.service';
 import { AppLayout } from './components/layout/AppLayout';
 import { ClientDashboard } from './components/client/ClientDashboard';
+import { StageNavigation } from './components/layout/StageNavigation';
 import { KeywordInput } from './components/stages/KeywordInput';
+import { TopicalMapCreator } from './components/stages/TopicalMapCreator';
+import { TopicalMapDisplay } from './components/stages/TopicalMapDisplay';
 import { ResearchDisplay } from './components/stages/ResearchDisplay';
 import { BlogDisplay } from './components/stages/BlogDisplay';
 import { PodcastDisplay } from './components/stages/PodcastDisplay';
-import { AudioPlayer } from './components/stages/AudioPlayer';
 import { ImageGallery } from './components/stages/ImageGallery';
 import { SocialCaptions } from './components/stages/SocialCaptions';
 import { ContentSummary } from './components/final/ContentSummary';
 import { useProject } from './hooks/useProject';
 import { useClientProject } from './hooks/useClientProject';
-import { ProjectStage, ResearchContent } from './types/project.types';
+import { useTopicalMaps } from './hooks/useTopicalMaps';
+import { ProjectStage, ResearchContent, TopicalMapKeyword } from './types/project.types';
 import { ProjectContent } from './types/client.types';
 
 function App() {
@@ -36,9 +39,20 @@ function App() {
     autoSave
   } = useClientProject();
 
+  const {
+    currentMap,
+    isLoading: isTopicalMapLoading,
+    generateTopicalMap,
+    createContentFromKeyword,
+    saveMap,
+    clearCurrentMap
+  } = useTopicalMaps();
+
   const [stageContent, setStageContent] = useState<Record<string, any>>({});
   const [showDashboard, setShowDashboard] = useState(true);
   const [activeContent, setActiveContent] = useState<ProjectContent | null>(null);
+  const [viewingStage, setViewingStage] = useState<ProjectStage | null>(null);
+  const [contentMode, setContentMode] = useState<'keyword' | 'topical-creator' | 'topical-display'>('keyword');
 
   // Ensure we always start on the dashboard
   useEffect(() => {
@@ -59,7 +73,7 @@ function App() {
     const testSupabaseConnection = async () => {
       try {
         console.log('Testing Supabase connection...');
-        const { data, error } = await supabase.from('projects').select('*').limit(1);
+        const { data, error } = await supabase.from('clients').select('id').limit(1);
         console.log('Supabase test result:', { data, error });
         
         if (error) {
@@ -82,6 +96,7 @@ function App() {
       setShowDashboard(false);
       setActiveContent(null);
       setStageContent({});
+      setViewingStage(null);
       return;
     }
 
@@ -94,6 +109,7 @@ function App() {
         
         setActiveContent(content);
         setShowDashboard(false);
+        setViewingStage(null); // Reset viewing stage when loading new content
         
         // Load stage data
         if (content.stage_data) {
@@ -168,26 +184,85 @@ function App() {
     }
   }, [project?.id, loadAllStageContent]);
 
-  const handleKeywordSubmit = async (keyword: string) => {
+  const handleKeywordSubmit = async (keyword: string, website?: string) => {
     if (activeContent) {
       // If we have an active content from client dashboard, use that
-      await handleGenerateResearch(activeContent.id, keyword);
+      await handleGenerateResearch(activeContent.id, keyword, website);
     } else {
       // Legacy flow - create a project directly
-      const newProject = await createProject(keyword);
+      const newProject = await createProject(keyword, website);
       if (newProject) {
-        await handleGenerateResearch(newProject.id, keyword);
+        await handleGenerateResearch(newProject.id, keyword, website);
       }
     }
   };
 
-  const handleGenerateResearch = async (contentId: string, keyword: string) => {
+  const handleTopicalMapMode = () => {
+    setContentMode('topical-creator');
+  };
+
+  const handleTopicalMapGenerated = async (topic: string, location: string, keywords: TopicalMapKeyword[]) => {
+    if (activeContent) {
+      // Generate map for existing project
+      const map = await generateTopicalMap(topic, location, activeContent.client_project_id);
+      if (map) {
+        setContentMode('topical-display');
+      }
+    } else {
+      // For Quick Start mode, show message to use client dashboard for better organization
+      toast.error('Topical Authority requires project organization. Redirecting to Client Dashboard...');
+      setShowDashboard(true);
+    }
+  };
+
+  const handleCreateContentFromKeyword = async (keyword: TopicalMapKeyword) => {
+    if (!currentMap || !activeContent) return;
+    
+    const contentId = await createContentFromKeyword(
+      currentMap.id, 
+      keyword, 
+      activeContent.client_project_id
+    );
+    
+    if (contentId) {
+      // Switch to content creation mode for this keyword
+      setContentMode('keyword');
+      await handleGenerateResearch(contentId, keyword.keyword);
+    }
+  };
+
+  const handleBackToKeywordMode = () => {
+    setContentMode('keyword');
+    clearCurrentMap();
+  };
+
+  const handleTopicalMapRequested = (projectId: string) => {
+    // Create a temporary activeContent from the selected project
+    // This allows the topical map to work with the project ID
+    const tempActiveContent = {
+      id: 'temp-topical-map',
+      client_project_id: projectId,
+      content_name: 'Topical Map',
+      keyword: 'topical-map',
+      stage: 'research' as ProjectStage,
+      stage_data: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_saved_at: new Date().toISOString()
+    };
+    
+    setActiveContent(tempActiveContent);
+    setShowDashboard(false);
+    setContentMode('topical-creator');
+  };
+
+  const handleGenerateResearch = async (contentId: string, keyword: string, website?: string) => {
     const timeoutId = setTimeout(() => {
       console.warn('Research is taking longer than expected... Still processing...');
     }, 15000);
 
     try {
-      const research = await regenerateContent(contentId, 'research', { keyword });
+      const research = await regenerateContent(contentId, 'research', { keyword, website });
       clearTimeout(timeoutId);
       
       if (research) {
@@ -200,6 +275,7 @@ function App() {
   };
 
   const handleGenerateBlog = async () => {
+    setViewingStage(null); // Clear viewing stage when progressing
     const projectId = activeContent?.id || project?.id;
     const keyword = activeContent?.keyword || project?.keyword;
     
@@ -231,6 +307,7 @@ function App() {
       console.log('Starting blog generation...');
       const blog = await regenerateContent(projectId, 'blog', {
         keyword,
+        website: activeContent?.website || project?.website,
         research: stageContent.research
       });
       
@@ -257,6 +334,7 @@ function App() {
   };
 
   const handleGeneratePodcast = async () => {
+    setViewingStage(null); // Clear viewing stage when progressing
     const projectId = activeContent?.id || project?.id;
     const keyword = activeContent?.keyword || project?.keyword;
     
@@ -313,71 +391,9 @@ function App() {
     }
   };
 
-  const handleGenerateAudio = async () => {
-    const projectId = activeContent?.id || project?.id;
-    const keyword = activeContent?.keyword || project?.keyword;
-    
-    console.log('=== AUDIO GENERATION DEBUG ===');
-    console.log('Project ID:', projectId);
-    console.log('Keyword:', keyword);
-    console.log('Has podcast script:', !!stageContent.podcast_script);
-    console.log('Current audio content:', stageContent.audio);
-    console.log('Is loading state:', isLoading);
-    console.log('===============================');
-    
-    if (!projectId || !stageContent.podcast_script) {
-      console.error('Missing required data for audio generation:', {
-        hasProjectId: !!projectId,
-        hasPodcastScript: !!stageContent.podcast_script
-      });
-      toast.error('Missing required data. Please generate podcast script first.');
-      return;
-    }
-    
-    if (!keyword) {
-      console.error('Missing keyword for audio generation');
-      toast.error('Missing keyword. Please check your project setup.');
-      return;
-    }
-    
-    try {
-      console.log('Starting audio generation...');
-      
-      // Clear existing audio to show loading state
-      await handleContentUpdate('audio', null);
-      
-      const audio = await regenerateContent(projectId, 'audio', {
-        keyword,
-        podcastScript: stageContent.podcast_script
-      });
-      
-      console.log('Audio generation result:', audio);
-      console.log('Audio result type:', typeof audio);
-      console.log('Audio result keys:', audio ? Object.keys(audio) : 'null');
-      
-      if (audio) {
-        console.log('Updating content with audio data...');
-        await handleContentUpdate('audio', audio);
-        
-        // Only update stage if we have a project (not for activeContent)
-        if (project?.id) {
-          await updateStage(projectId, 'audio');
-        }
-        
-        console.log('Audio generation completed successfully');
-        toast.success('Audio generated successfully!');
-      } else {
-        console.error('Audio generation returned null/undefined');
-        toast.error('Audio generation failed - no content returned');
-      }
-    } catch (error: any) {
-      console.error('Audio generation error:', error);
-      console.error('Error stack:', error.stack);
-      toast.error(`Audio generation failed: ${error.message}`);
-    }
-  };
 
   const handleGenerateImages = async () => {
+    setViewingStage(null); // Clear viewing stage when progressing
     const projectId = activeContent?.id || project?.id;
     if (!projectId || !stageContent.blog) return;
     
@@ -393,6 +409,7 @@ function App() {
   };
 
   const handleGenerateSocial = async () => {
+    setViewingStage(null); // Clear viewing stage when progressing
     const projectId = activeContent?.id || project?.id;
     if (!projectId || !stageContent.blog) return;
     
@@ -413,26 +430,87 @@ function App() {
     await updateStage(projectId, 'complete');
   };
 
+  const getLatestStage = () => {
+    // Determine the latest stage based on what content exists
+    if (stageContent.social) return 'social';
+    if (stageContent.images) return 'images';
+    if (stageContent.podcast_script) return 'podcast_script';
+    if (stageContent.blog) return 'blog';
+    if (stageContent.research) return 'research';
+    return 'research'; // Default to research if no content
+  };
+
   const getCurrentStage = () => {
+    // If we're viewing a specific stage, return that
+    if (viewingStage) return viewingStage;
+    
+    // Otherwise return the latest stage
     if (activeContent) {
-      // Determine stage based on what content exists
-      if (stageContent.social) return 'social';
-      if (stageContent.images) return 'images';
-      if (stageContent.audio) return 'audio';
-      if (stageContent.podcast_script) return 'podcast_script';
-      if (stageContent.blog) return 'blog';
-      if (stageContent.research) return 'research';
-      return 'research'; // Default to research if no content
+      return getLatestStage();
     }
     return currentStage;
+  };
+
+  const navigateToStage = (stage: ProjectStage) => {
+    // Set the viewing stage
+    setViewingStage(stage);
+    console.log('Navigating to stage:', stage);
+  };
+
+  const canNavigateToStage = (stage: ProjectStage): boolean => {
+    // Check if we can navigate to a stage
+    const stageOrder: ProjectStage[] = ['research', 'blog', 'podcast_script', 'images', 'social'];
+    const latestIndex = stageOrder.indexOf(getLatestStage());
+    const targetIndex = stageOrder.indexOf(stage);
+    
+    // Skip audio stage entirely
+    if (stage === 'audio') return false;
+    
+    // Can navigate if:
+    // 1. Stage has content (regardless of position)
+    // 2. It's the research stage (always accessible)
+    // 3. It's before or at our latest progress
+    return (
+      stageContent[stage] !== undefined || 
+      targetIndex === 0 || // Can always go to research/start
+      targetIndex <= latestIndex
+    );
   };
 
   const renderCurrentStage = () => {
     const stage = getCurrentStage();
     const keyword = activeContent?.keyword || project?.keyword;
 
+    // Handle topical map modes
+    if (contentMode === 'topical-creator') {
+      return (
+        <TopicalMapCreator
+          onMapGenerated={handleTopicalMapGenerated}
+          isLoading={isTopicalMapLoading}
+        />
+      );
+    }
+
+    if (contentMode === 'topical-display' && currentMap) {
+      return (
+        <TopicalMapDisplay
+          topicalMap={currentMap}
+          onCreateContent={handleCreateContentFromKeyword}
+          onSaveMap={() => saveMap(currentMap)}
+          onRegenerateMap={handleBackToKeywordMode}
+          isLoading={isTopicalMapLoading}
+        />
+      );
+    }
+
     if (!keyword && !activeContent) {
-      return <KeywordInput onSubmit={handleKeywordSubmit} isLoading={isLoading} />;
+      return (
+        <KeywordInput 
+          onSubmit={handleKeywordSubmit} 
+          onTopicalMapMode={handleTopicalMapMode}
+          isLoading={isLoading} 
+        />
+      );
     }
 
     switch (stage) {
@@ -453,6 +531,7 @@ function App() {
             isLoading={isLoading}
             onRegenerate={handleGenerateBlog}
             onContinue={handleGeneratePodcast}
+            onPrevious={() => navigateToStage('research')}
           />
         );
 
@@ -462,17 +541,8 @@ function App() {
             podcast={stageContent.podcast_script}
             isLoading={isLoading}
             onRegenerate={handleGeneratePodcast}
-            onContinue={handleGenerateAudio}
-          />
-        );
-
-      case 'audio':
-        return (
-          <AudioPlayer
-            audio={stageContent.audio}
-            isLoading={isLoading}
-            onRegenerate={handleGenerateAudio}
             onContinue={handleGenerateImages}
+            onPrevious={() => navigateToStage('blog')}
           />
         );
 
@@ -483,6 +553,7 @@ function App() {
             isLoading={isLoading}
             onRegenerate={handleGenerateImages}
             onContinue={handleGenerateSocial}
+            onPrevious={() => navigateToStage('podcast_script')}
           />
         );
 
@@ -493,6 +564,7 @@ function App() {
             isLoading={isLoading}
             onRegenerate={handleGenerateSocial}
             onContinue={handleCompleteProject}
+            onPrevious={() => navigateToStage('images')}
           />
         );
 
@@ -510,6 +582,7 @@ function App() {
               setShowDashboard(true);
               setActiveContent(null);
               setStageContent({});
+              setViewingStage(null);
             }}
           />
         );
@@ -522,7 +595,10 @@ function App() {
   if (showDashboard) {
     return (
       <>
-        <ClientDashboard onContentSelected={handleContentSelected} />
+        <ClientDashboard 
+          onContentSelected={handleContentSelected} 
+          onTopicalMapRequested={handleTopicalMapRequested}
+        />
         <Toaster 
           position="bottom-right"
           toastOptions={{
@@ -548,6 +624,7 @@ function App() {
             setShowDashboard(true);
             setActiveContent(null);
             setStageContent({});
+            setViewingStage(null);
           }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-200"
         >
@@ -579,6 +656,17 @@ function App() {
             <div className="mb-6 p-4 bg-red-500/10 backdrop-blur-xl border border-red-500/20 rounded-2xl text-red-400">
               {error}
             </div>
+          )}
+          
+          {/* Stage Navigation */}
+          {(activeContent || project) && (
+            <StageNavigation
+              currentStage={getCurrentStage()}
+              latestStage={getLatestStage()}
+              onNavigate={navigateToStage}
+              canNavigate={canNavigateToStage}
+              stageContent={stageContent}
+            />
           )}
           
           {renderCurrentStage()}

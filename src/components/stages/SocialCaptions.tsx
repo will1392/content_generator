@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, RefreshCw, ArrowRight, Loader2, Twitter, Linkedin, Instagram, Hash } from 'lucide-react';
+import { Copy, RefreshCw, ArrowRight, ArrowLeft, Loader2, Twitter, Linkedin, Instagram, Hash } from 'lucide-react';
 import { SocialContent } from '../../types/project.types';
 import { toast } from 'react-toastify';
 
@@ -8,6 +8,7 @@ interface SocialCaptionsProps {
   isLoading: boolean;
   onRegenerate: () => Promise<void>;
   onContinue: () => void;
+  onPrevious?: () => void;
 }
 
 type Platform = 'twitter' | 'linkedin' | 'instagram';
@@ -17,6 +18,7 @@ export const SocialCaptions: React.FC<SocialCaptionsProps> = ({
   isLoading,
   onRegenerate,
   onContinue,
+  onPrevious,
 }) => {
   const [copiedPlatform, setCopiedPlatform] = useState<Platform | null>(null);
 
@@ -103,6 +105,15 @@ export const SocialCaptions: React.FC<SocialCaptionsProps> = ({
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Social Media Content</h2>
         <div className="flex items-center gap-3">
+          {onPrevious && (
+            <button
+              onClick={onPrevious}
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Previous
+            </button>
+          )}
           <button
             onClick={onRegenerate}
             disabled={isLoading}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, FolderOpen, FileText, BarChart3, Clock, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Users, FolderOpen, FileText, BarChart3, Clock, TrendingUp, Globe } from 'lucide-react';
 import { ClientSelector } from './ClientSelector';
 import { ProjectOrganizer } from './ProjectOrganizer';
 import { CreateModal } from './CreateModal';
@@ -8,9 +8,10 @@ import { Client } from '../../types/client.types';
 
 interface ClientDashboardProps {
   onContentSelected: (contentId: string) => void;
+  onTopicalMapRequested?: (projectId: string) => void;
 }
 
-export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onContentSelected }) => {
+export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onContentSelected, onTopicalMapRequested }) => {
   const {
     selectedClient,
     selectedProject,
@@ -29,6 +30,11 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onContentSelec
   } = useClientProject();
 
   const [modalType, setModalType] = useState<'client' | 'project' | 'content' | null>(null);
+  
+  // Debug modal state changes
+  useEffect(() => {
+    console.log('Modal type changed to:', modalType);
+  }, [modalType]);
 
   useEffect(() => {
     loadClients();
@@ -47,10 +53,17 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onContentSelec
     }
   };
 
-  const handleCreateProject = async (data: { project_name: string; description?: string }) => {
-    const newProject = await createProject(data.project_name, data.description);
-    if (newProject) {
-      setModalType(null);
+  const handleCreateProject = async (data: { project_name: string; description?: string; website?: string }) => {
+    console.log('Creating project with data:', data);
+    console.log('Selected client:', selectedClient);
+    try {
+      const newProject = await createProject(data.project_name, data.description, data.website);
+      console.log('Project creation result:', newProject);
+      if (newProject) {
+        setModalType(null);
+      }
+    } catch (error) {
+      console.error('Project creation error:', error);
     }
   };
 
@@ -65,6 +78,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onContentSelec
   // Calculate stats
   const totalProjects = projects.length;
   const activeProjects = projects.filter(p => p.status === 'active').length;
+  const projectsWithWebsites = projects.filter(p => p.website).length;
   const totalContents = contents.length;
   const completedContents = contents.filter(c => c.stage === 'complete').length;
 
@@ -125,7 +139,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onContentSelec
         {selectedClient && (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
               <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
                 <div className="flex items-center justify-between mb-2">
                   <FolderOpen className="w-8 h-8 text-blue-400" />
@@ -140,6 +154,14 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onContentSelec
                   <span className="text-2xl font-bold text-white">{activeProjects}</span>
                 </div>
                 <p className="text-white/60 text-sm">Active Projects</p>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
+                <div className="flex items-center justify-between mb-2">
+                  <Globe className="w-8 h-8 text-cyan-400" />
+                  <span className="text-2xl font-bold text-white">{projectsWithWebsites}</span>
+                </div>
+                <p className="text-white/60 text-sm">With Websites</p>
               </div>
 
               <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
@@ -172,8 +194,12 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ onContentSelec
                 selectedContent={selectedContent}
                 onSelectProject={selectProject}
                 onSelectContent={selectContent}
-                onCreateProject={() => setModalType('project')}
+                onCreateProject={() => {
+                  console.log('New Project button clicked, selectedClient:', selectedClient);
+                  setModalType('project');
+                }}
                 onCreateContent={() => setModalType('content')}
+                onCreateTopicalMap={selectedProject ? () => onTopicalMapRequested?.(selectedProject.id) : undefined}
               />
             </div>
 

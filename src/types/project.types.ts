@@ -10,6 +10,7 @@ export type ProjectStage =
 export interface Project {
   id: string;
   keyword: string;
+  website?: string;
   status: ProjectStage;
   created_at: string;
   updated_at: string;
@@ -119,6 +120,12 @@ export interface BlogContent {
     anchor: string;
     suggestion: string;
   }>;
+  externalLinks?: Array<{
+    anchor: string;
+    url: string;
+    source: string;
+    context?: string;
+  }>;
   images?: Array<{
     alt: string;
     caption: string;
@@ -165,4 +172,29 @@ export interface SocialContent {
     caption: string;
     hashtags: string[];
   };
+}
+
+export interface TopicalMapKeyword {
+  id: string;
+  keyword: string;
+  searchVolume?: number;
+  difficulty?: string;
+  intent: 'informational' | 'transactional' | 'navigational' | 'commercial';
+  priority: 'high' | 'medium' | 'low';
+  contentCreated: boolean;
+  contentId?: string;
+}
+
+export interface TopicalMap {
+  id: string;
+  client_project_id: string;
+  title: string;
+  topic: string;
+  location: string;
+  description?: string;
+  keywords: TopicalMapKeyword[];
+  totalKeywords: number;
+  completedKeywords: number;
+  created_at: string;
+  updated_at: string;
 }

@@ -41,13 +41,14 @@ export const useProject = () => {
     }
   };
 
-  const createProject = async (keyword: string): Promise<Project | null> => {
+  const createProject = async (keyword: string, website?: string): Promise<Project | null> => {
     try {
       setIsLoading(true);
       setError(null);
 
       const newProject = {
         keyword,
+        website,
         status: 'research' as ProjectStage,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -148,14 +149,15 @@ export const useProject = () => {
       
       switch (stageType) {
         case 'research':
-          response = await contentService.generateResearch(projectId, params.keyword);
+          response = await contentService.generateResearch(projectId, params.keyword, params.website);
           break;
           
         case 'blog':
           response = await contentService.generateBlog(
             projectId, 
             params.keyword, 
-            params.research
+            params.research,
+            params.website
           );
           break;
           

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Download, RefreshCw, ArrowRight, Loader2, FileText, Clock, Bookmark, Podcast, Tag, Calendar, Award, Eye, EyeOff } from 'lucide-react';
+import { Copy, Download, RefreshCw, ArrowRight, ArrowLeft, Loader2, FileText, Clock, Bookmark, Podcast, Tag, Calendar, Award, Eye, EyeOff, ExternalLink, Link } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { BlogContent } from '../../types/project.types';
 import { toast } from 'react-toastify';
@@ -9,6 +9,7 @@ interface BlogDisplayProps {
   isLoading: boolean;
   onRegenerate: () => Promise<void>;
   onContinue: () => void;
+  onPrevious?: () => void;
 }
 
 export const BlogDisplay: React.FC<BlogDisplayProps> = ({
@@ -229,6 +230,53 @@ export const BlogDisplay: React.FC<BlogDisplayProps> = ({
               <p className="text-xl font-semibold text-white">{(blog.wordCount || 1500).toLocaleString()} words</p>
             </div>
           </div>
+
+          {/* External Links Card */}
+          {blog.externalLinks && blog.externalLinks.length > 0 && (
+            <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-xl">
+              <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                <ExternalLink className="w-5 h-5" />
+                Reference Sources
+              </h3>
+              <div className="space-y-3">
+                {blog.externalLinks.map((link, index) => (
+                  <div key={index} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#533de3] hover:text-[#4531b8] font-medium flex items-center gap-2 mb-1 transition-colors"
+                    >
+                      <Link className="w-4 h-4" />
+                      {link.anchor}
+                    </a>
+                    <p className="text-white/60 text-sm mb-1">{link.source}</p>
+                    {link.context && (
+                      <p className="text-white/50 text-xs">{link.context}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Internal Links Card */}
+          {blog.internalLinks && blog.internalLinks.length > 0 && (
+            <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-xl">
+              <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                <Link className="w-5 h-5" />
+                Internal Link Suggestions
+              </h3>
+              <div className="space-y-3">
+                {blog.internalLinks.map((link, index) => (
+                  <div key={index} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <p className="text-white/80 font-medium mb-1">{link.anchor}</p>
+                    <p className="text-white/60 text-sm">{link.suggestion}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Progress Indicator */}
           <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-xl mt-6">

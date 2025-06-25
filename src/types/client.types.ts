@@ -15,6 +15,7 @@ export interface ClientProject {
   client_id: string;
   project_name: string;
   description?: string;
+  website?: string;
   status: 'active' | 'completed' | 'archived';
   created_at: string;
   updated_at: string;
@@ -25,6 +26,9 @@ export interface ProjectContent {
   client_project_id: string;
   content_name: string;
   keyword: string;
+  website?: string;
+  topical_map_id?: string;
+  topical_map_keyword_id?: string;
   stage: ProjectStage;
   stage_data: {
     research?: ResearchContent;
@@ -40,7 +44,7 @@ export interface ProjectContent {
 }
 
 // Import from existing types
-import { ProjectStage, ResearchContent, BlogContent, PodcastContent, AudioContent, ImagesContent, SocialContent } from './project.types';
+import { ProjectStage, ResearchContent, BlogContent, PodcastContent, AudioContent, ImagesContent, SocialContent, TopicalMap } from './project.types';
 
 // Dashboard view types
 export interface ClientWithProjects extends Client {
@@ -49,6 +53,7 @@ export interface ClientWithProjects extends Client {
 
 export interface ClientProjectWithContent extends ClientProject {
   contents: ProjectContent[];
+  topical_maps?: TopicalMap[];
 }
 
 // Auto-save types

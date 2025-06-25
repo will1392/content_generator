@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Download, RefreshCw, ArrowRight, Loader2, Mic, Clock, List } from 'lucide-react';
+import { Copy, Download, RefreshCw, ArrowRight, ArrowLeft, Loader2, Mic, Clock, List } from 'lucide-react';
 import { PodcastContent } from '../../types/project.types';
 import { toast } from 'react-toastify';
 
@@ -8,6 +8,7 @@ interface PodcastDisplayProps {
   isLoading: boolean;
   onRegenerate: () => Promise<void>;
   onContinue: () => void;
+  onPrevious?: () => void;
 }
 
 export const PodcastDisplay: React.FC<PodcastDisplayProps> = ({
@@ -15,6 +16,7 @@ export const PodcastDisplay: React.FC<PodcastDisplayProps> = ({
   isLoading,
   onRegenerate,
   onContinue,
+  onPrevious,
 }) => {
   const [isCopying, setIsCopying] = useState(false);
   const [showOutline, setShowOutline] = useState(true);
@@ -97,6 +99,15 @@ export const PodcastDisplay: React.FC<PodcastDisplayProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {onPrevious && (
+            <button
+              onClick={onPrevious}
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Previous
+            </button>
+          )}
           <button
             onClick={handleCopy}
             disabled={isCopying}
@@ -128,7 +139,7 @@ export const PodcastDisplay: React.FC<PodcastDisplayProps> = ({
             onClick={onContinue}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Continue to Audio
+            Continue to Images
             <ArrowRight className="w-4 h-4 ml-2" />
           </button>
         </div>

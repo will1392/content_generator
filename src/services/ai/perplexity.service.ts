@@ -1,6 +1,6 @@
 // services/ai/perplexity.service.ts
 import axios from 'axios';
-import { ResearchContent } from '../../types/project.types';
+import { ResearchContent, TopicalMapKeyword } from '../../types/project.types';
 
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
@@ -26,12 +26,13 @@ export class PerplexityService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  private async makeRequest(messages: any[], retryCount: number = 0): Promise<string> {
+  private async makeRequest(messages: any[], retryCount: number = 0, useDeepResearch: boolean = false): Promise<string> {
     console.log('Making Perplexity API request...');
     const apiKey = getPerplexityApiKey();
     console.log('API Key exists:', !!apiKey);
     console.log('API Key value:', apiKey ? `${apiKey.substring(0, 10)}...` : 'undefined');
     console.log('Messages length:', messages.length);
+    console.log('Using deep research model:', useDeepResearch);
     
     if (!apiKey) {
       console.error('Environment variables:', {
@@ -43,10 +44,10 @@ export class PerplexityService {
     
     try {
       const requestBody = {
-        model: 'sonar-pro',
+        model: useDeepResearch ? 'sonar-reasoning' : 'sonar-pro',
         messages,
         temperature: 0.2,
-        max_tokens: 4000,
+        max_tokens: useDeepResearch ? 8000 : 4000, // Deep research supports more tokens
       };
       
       console.log('Request body prepared, making API call...');
@@ -106,48 +107,103 @@ export class PerplexityService {
     }
   }
 
-  async generateResearch(keyword: string): Promise<ResearchContent> {
+  async generateResearch(keyword: string, website?: string): Promise<ResearchContent> {
     console.time('Perplexity Research Time');
-    console.log('Starting Perplexity research for:', keyword);
+    console.log('Starting Perplexity DEEP RESEARCH for:', keyword);
+    console.log('Website for internal linking:', website);
     
     const systemPrompt = `You are an expert SEO research analyst focused on E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness). 
     Your research will be used to create content that ranks well on Google by demonstrating real expertise and authority.
-    Always provide specific, verifiable data with sources. Focus on unique insights that demonstrate deep understanding.`;
+    Always provide specific, verifiable data with sources. Focus on unique insights that demonstrate deep understanding.
+    Conduct thorough, comprehensive research that goes beyond surface-level information.`;
 
-    const userPrompt = `Research "${keyword}" and provide comprehensive information in JSON format.
+    const websiteContext = website ? `
 
-Include:
-1. Definition and overview
-2. Current trends and statistics
-3. Common questions people ask
-4. Related topics and applications
-5. Key challenges and opportunities
+Additional context: If applicable, consider how this topic relates to the website ${website} for potential internal linking opportunities.` : '';
+    
+    const userPrompt = `Conduct DEEP RESEARCH on "${keyword}" and provide comprehensive, in-depth information in JSON format.${websiteContext}
 
-Format as JSON:
+Perform thorough research including:
+1. Comprehensive definition and detailed overview
+2. Current trends with specific data points and statistics
+3. Common questions people ask with expert answers
+4. Related topics and real-world applications
+5. Key challenges, opportunities, and future outlook
+6. Expert insights and industry perspectives
+7. Case studies or examples where applicable
+
+Go deep into the topic - don't just provide surface-level information. Include specific data, statistics, expert opinions, and unique insights that demonstrate true expertise.
+
+Format your response as a COMPLETE JSON object with ALL of these fields:
 {
-  "definition": "Clear definition of ${keyword}",
-  "overview": "Comprehensive overview",
-  "currentTrends": ["trend1", "trend2", "trend3"],
-  "statistics": ["stat1 with source", "stat2 with source"],
+  "searchIntent": {
+    "primary": "informational",
+    "userGoals": ["goal1", "goal2"],
+    "relatedQueries": ["query1", "query2"],
+    "questionsToAnswer": ["question1", "question2"]
+  },
+  "expertiseIndicators": {
+    "technicalSpecs": ["spec1", "spec2"],
+    "industryStandards": ["standard1", "standard2"],
+    "terminology": [{"term": "term1", "definition": "def1"}],
+    "misconceptions": [{"misconception": "myth1", "truth": "fact1"}]
+  },
+  "experienceEvidence": [
+    {"type": "type1", "description": "desc1", "outcome": "outcome1", "source": "source1"}
+  ],
+  "authoritativeData": [
+    {"metric": "metric1", "value": "value1", "source": "source1", "year": "2024"}
+  ],
+  "trustSignals": {
+    "regulations": ["reg1", "reg2"],
+    "bestPractices": ["practice1", "practice2"],
+    "safetyConsiderations": ["safety1", "safety2"]
+  },
+  "competitiveLandscape": {
+    "topRankingContent": ["content1", "content2"],
+    "contentGaps": ["gap1", "gap2"],
+    "uniqueAngles": ["angle1", "angle2"]
+  },
+  "semanticSEO": {
+    "lsiKeywords": ["keyword1", "keyword2"],
+    "entities": ["entity1", "entity2"],
+    "topicClusters": ["cluster1", "cluster2"]
+  },
+  "featuredSnippetOpps": [
+    {"question": "question1", "optimalAnswer": "answer1"}
+  ],
+  "contentDepthRequirements": {
+    "mustCoverTopics": ["topic1", "topic2"],
+    "uniqueInsights": ["insight1", "insight2"],
+    "originalAngles": ["angle1", "angle2"]
+  },
+  "definition": "Comprehensive definition of ${keyword}",
+  "overview": "In-depth overview with key concepts",
+  "history": "Historical context if applicable",
+  "currentTrends": ["detailed trend 1", "detailed trend 2", "detailed trend 3"],
+  "statistics": [
+    {"metric": "metric name", "value": "specific value", "source": "data source"}
+  ],
+  "expertInsights": ["expert insight 1", "expert insight 2"],
   "commonQuestions": [
-    {"question": "What is ${keyword}?", "answer": "detailed answer"},
-    {"question": "How does ${keyword} work?", "answer": "detailed answer"}
+    {"question": "What is ${keyword}?", "answer": "comprehensive expert answer"},
+    {"question": "How does ${keyword} work?", "answer": "detailed technical answer"}
   ],
   "relatedTopics": ["topic1", "topic2", "topic3"],
-  "applications": ["application1", "application2"],
-  "challenges": ["challenge1", "challenge2"],
-  "opportunities": ["opportunity1", "opportunity2"],
-  "futureOutlook": "Analysis of future trends"
+  "applications": ["detailed application1", "detailed application2"],
+  "futureOutlook": "Detailed analysis of future trends and predictions",
+  "challenges": ["specific challenge1", "specific challenge2"],
+  "opportunities": ["concrete opportunity1", "concrete opportunity2"]
 }
 
-Return only valid JSON.`;
+IMPORTANT: Return ONLY valid JSON. Ensure statistics field contains objects with metric, value, and source properties.`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ];
 
-    const response = await this.makeRequest(messages);
+    const response = await this.makeRequest(messages, 0, true); // Enable deep research mode
     console.timeEnd('Perplexity Research Time');
     console.log('Perplexity response received, length:', response.length);
     
@@ -354,8 +410,9 @@ Create a script that feels like two real friends having an authentic conversatio
     }
   }
 
-  async generateBlog(keyword: string, research: any): Promise<any> {
+  async generateBlog(keyword: string, research: any, website?: string): Promise<any> {
     console.log('Generating SEO-optimized blog for:', keyword);
+    console.log('Website for internal linking:', website);
     console.log('Research data:', research);
 
     const systemPrompt = `You are an expert SEO content writer who creates highly engaging, authoritative content that ranks well on Google. 
@@ -372,6 +429,8 @@ Create a script that feels like two real friends having an authentic conversatio
 
     // Build research summary from available data
     let researchSummary = '';
+    let externalSources: Array<{url: string, source: string, context: string}> = [];
+    
     if (research) {
       if (research.definition) researchSummary += `\nDefinition: ${research.definition}`;
       if (research.overview) researchSummary += `\nOverview: ${research.overview}`;
@@ -379,15 +438,71 @@ Create a script that feels like two real friends having an authentic conversatio
       if (research.statistics) researchSummary += `\nStatistics: ${JSON.stringify(research.statistics).slice(0, 500)}`;
       if (research.commonQuestions) researchSummary += `\nCommon Questions: ${JSON.stringify(research.commonQuestions).slice(0, 500)}`;
       if (research.applications) researchSummary += `\nApplications: ${Array.isArray(research.applications) ? research.applications.join(', ') : research.applications}`;
+      
+      // Extract external links from research data
+      if (research.authoritativeData && Array.isArray(research.authoritativeData)) {
+        research.authoritativeData.forEach((item: any) => {
+          if (item.url && item.source) {
+            externalSources.push({
+              url: item.url,
+              source: item.source,
+              context: `${item.metric}: ${item.value} (${item.year})`
+            });
+          }
+        });
+      }
+      
+      if (research.statistics && Array.isArray(research.statistics)) {
+        research.statistics.forEach((stat: any) => {
+          if (stat.source && stat.source.startsWith('http')) {
+            externalSources.push({
+              url: stat.source,
+              source: stat.source,
+              context: `${stat.metric}: ${stat.value}`
+            });
+          }
+        });
+      }
+      
+      if (research.experienceEvidence && Array.isArray(research.experienceEvidence)) {
+        research.experienceEvidence.forEach((evidence: any) => {
+          if (evidence.source && evidence.source.startsWith('http')) {
+            externalSources.push({
+              url: evidence.source,
+              source: evidence.source,
+              context: evidence.description
+            });
+          }
+        });
+      }
     }
 
     if (!researchSummary) {
       researchSummary = JSON.stringify(research, null, 2).slice(0, 2000);
     }
 
+    const websiteInstructions = website ? `
+
+9. Internal Linking Strategy:
+   - When relevant, suggest internal links to ${website}
+   - Include 3-5 potential internal link suggestions in the internalLinks field
+   - Only suggest links that would genuinely add value to readers
+   - Format: {"anchor": "suggested anchor text", "suggestion": "description of what this link should point to"}
+   - Example: {"anchor": "learn more about X", "suggestion": "Link to a relevant page about X on ${website}"}` : '';
+
+    const externalLinksInstructions = externalSources.length > 0 ? `
+
+10. External Link Integration:
+   - Incorporate authoritative external sources naturally within the content
+   - Use the external sources provided from research data to add credibility
+   - Include 3-7 external links that support key points in your content
+   - Place links contextually where they add the most value
+   - Available sources: ${JSON.stringify(externalSources.slice(0, 5))}
+   - Format in externalLinks field: {"anchor": "natural anchor text", "url": "actual URL", "source": "source name", "context": "why this link is relevant"}` : '';
+
     const userPrompt = `Create a comprehensive, SEO-optimized blog post about "${keyword}" using the provided research data.
 
-RESEARCH DATA:${researchSummary}
+RESEARCH DATA:${researchSummary}${websiteInstructions}${externalLinksInstructions}
 
 BLOG POST REQUIREMENTS:
 
@@ -437,7 +552,9 @@ FORMAT YOUR RESPONSE AS JSON:
   "wordCount": 1800,
   "readingTime": 8,
   "targetKeywords": ["main keyword", "related keyword 1", "related keyword 2"],
-  "readabilityScore": "Grade 8"
+  "readabilityScore": "Grade 8",
+  "internalLinks": [{"anchor": "suggested anchor text", "suggestion": "description of what this link should point to"}],
+  "externalLinks": [{"anchor": "natural anchor text", "url": "actual URL", "source": "source name", "context": "why this link is relevant"}]
 }
 
 Remember: Write clearly and simply. If a 13-year-old can understand it, you're doing it right.`;
@@ -502,6 +619,36 @@ Remember: Write clearly and simply. If a 13-year-old can understand it, you're d
       };
       
       // Manually construct the blog data object
+      // Extract internal links if they exist
+      const extractInternalLinks = (): Array<{anchor: string, suggestion: string}> => {
+        const pattern = /"internalLinks"\s*:\s*\[([^\]]*)]]/i;
+        const match = jsonString.match(pattern);
+        if (match && match[1]) {
+          try {
+            const linksStr = `[${match[1]}]`;
+            return JSON.parse(linksStr) || [];
+          } catch {
+            return [];
+          }
+        }
+        return [];
+      };
+      
+      // Extract external links if they exist
+      const extractExternalLinks = (): Array<{anchor: string, url: string, source: string, context?: string}> => {
+        const pattern = /"externalLinks"\s*:\s*\[([^\]]*)]]/i;
+        const match = jsonString.match(pattern);
+        if (match && match[1]) {
+          try {
+            const linksStr = `[${match[1]}]`;
+            return JSON.parse(linksStr) || [];
+          } catch {
+            return [];
+          }
+        }
+        return [];
+      };
+      
       const blogData = {
         title: extractField('title') || `Expert Guide to ${keyword}`,
         metaDescription: extractField('metaDescription') || `Comprehensive guide about ${keyword}. Learn everything you need to know.`,
@@ -509,7 +656,9 @@ Remember: Write clearly and simply. If a 13-year-old can understand it, you're d
         wordCount: extractNumber('wordCount') || 1500,
         readingTime: extractNumber('readingTime') || 8,
         targetKeywords: extractArray('targetKeywords').length > 0 ? extractArray('targetKeywords') : [keyword],
-        readabilityScore: extractField('readabilityScore') || 'Grade 8'
+        readabilityScore: extractField('readabilityScore') || 'Grade 8',
+        internalLinks: extractInternalLinks(),
+        externalLinks: extractExternalLinks()
       };
       
       // Clean the content field to ensure it's valid markdown
@@ -564,6 +713,7 @@ Remember: Write clearly and simply. If a 13-year-old can understand it, you're d
           
           // Remove trailing commas and control characters
           cleanedExtract = cleanedExtract.replace(/,\s*([}\]])/g, '$1');
+          // eslint-disable-next-line no-control-regex
           cleanedExtract = cleanedExtract.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
           
           const extracted = JSON.parse(cleanedExtract);
@@ -571,12 +721,135 @@ Remember: Write clearly and simply. If a 13-year-old can understand it, you're d
           if (!extracted.readingTime) extracted.readingTime = 8;
           if (!extracted.targetKeywords) extracted.targetKeywords = [keyword];
           if (!extracted.readabilityScore) extracted.readabilityScore = "Grade 8";
+          if (!extracted.internalLinks) extracted.internalLinks = [];
+          if (!extracted.externalLinks) extracted.externalLinks = [];
           return extracted;
         } catch (e) {
           console.error('Failed to parse extracted JSON:', e);
         }
       }
       throw new Error('Failed to parse blog data: ' + parseError.message);
+    }
+  }
+
+  async generateTopicalMap(topic: string, location: string): Promise<TopicalMapKeyword[]> {
+    console.log('Generating topical map for:', { topic, location });
+
+    const systemPrompt = `You are an SEO strategist tasked with building topical maps for local SEO based on core keywords and locations. You specialize in creating comprehensive keyword strategies that establish topical authority while targeting local search opportunities.`;
+
+    const userPrompt = `You are an SEO strategist tasked with building a topical map for local SEO based on a core keyword and location. The core keyword is:
+"${topic} ${location}"
+
+Build a structured topical map that includes:
+
+I. Core Topic Cluster
+A short paragraph explaining the core search intent
+
+A list of 3–5 target pages (or pillar articles) to rank for the primary keyword
+
+II. Supporting Content Clusters (Silos)
+For each supporting silo, do the following:
+
+Name the subtopic cluster (e.g., "Luxury Travel Services in Pittsburgh")
+
+List 5–10 longtail keyword variations (local modifiers, intent-based searches, question formats, etc.)
+
+Suggest a blog post or landing page title for each keyword
+
+Label search intent: Informational, Commercial, or Transactional
+
+III. FAQ / "People Also Ask" Section
+List 10–15 common local search questions people ask related to the core keyword and location
+
+Provide one-sentence suggested answers that could be featured snippets
+
+IV. Local SEO Optimization Opportunities
+Recommend 5 optimizations for Google Business Profile
+
+Suggest structured data markup types to use
+
+Suggest opportunities for local backlinks (e.g., directories, chambers, partnerships)
+
+CRITICAL: Extract exactly 10 of the BEST longtail keywords from your comprehensive analysis above and format them as JSON:
+
+{
+  "keywords": [
+    {
+      "keyword": "specific keyword phrase",
+      "intent": "informational|commercial|transactional|navigational",
+      "priority": "high|medium|low",
+      "difficulty": "Easy|Medium|Hard",
+      "searchVolume": 1200
+    }
+  ]
+}
+
+Focus on keywords that have the highest potential for ranking and conversion in "${location}" for "${topic}".`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+
+    const response = await this.makeRequest(messages);
+    
+    try {
+      console.log('Raw topical map response:', response.substring(0, 500));
+      
+      let jsonString = response.trim();
+      
+      // Extract JSON from code blocks if present
+      const codeBlockMatch = jsonString.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (codeBlockMatch) {
+        jsonString = codeBlockMatch[1];
+      }
+      
+      const parsed = JSON.parse(jsonString);
+      
+      if (!parsed.keywords || !Array.isArray(parsed.keywords)) {
+        throw new Error('Invalid response format: missing keywords array');
+      }
+      
+      // Convert to TopicalMapKeyword format with unique IDs
+      const keywords: TopicalMapKeyword[] = parsed.keywords.map((kw: any, index: number) => ({
+        id: `${Date.now()}-${index}`,
+        keyword: kw.keyword || '',
+        searchVolume: kw.searchVolume || undefined,
+        difficulty: kw.difficulty || 'Medium',
+        intent: kw.intent || 'informational',
+        priority: kw.priority || 'medium',
+        contentCreated: false,
+        contentId: undefined
+      }));
+      
+      console.log('Successfully generated topical map with', keywords.length, 'keywords');
+      return keywords;
+      
+    } catch (parseError: any) {
+      console.error('Failed to parse topical map response:', parseError);
+      
+      // Fallback: try to extract keywords manually
+      const keywordMatches = response.match(/"keyword":\s*"([^"]+)"/g);
+      if (keywordMatches && keywordMatches.length > 0) {
+        const fallbackKeywords: TopicalMapKeyword[] = keywordMatches.slice(0, 10).map((match, index) => {
+          const keyword = match.match(/"keyword":\s*"([^"]+)"/)?.[1] || '';
+          return {
+            id: `${Date.now()}-${index}`,
+            keyword,
+            searchVolume: undefined,
+            difficulty: 'Medium',
+            intent: 'informational' as const,
+            priority: 'medium' as const,
+            contentCreated: false,
+            contentId: undefined
+          };
+        });
+        
+        console.log('Using fallback keyword extraction, found', fallbackKeywords.length, 'keywords');
+        return fallbackKeywords;
+      }
+      
+      throw new Error('Failed to generate topical map: ' + parseError.message);
     }
   }
 }

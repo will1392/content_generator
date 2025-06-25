@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Building2, Mail, FileText, Tag } from 'lucide-react';
+import { X, User, Building2, Mail, FileText, Tag, Globe } from 'lucide-react';
 
 interface CreateModalProps {
   type: 'client' | 'project' | 'content';
@@ -139,6 +139,22 @@ export const CreateModal: React.FC<CreateModalProps> = ({
                     onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
                     className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-[#533de3]/50"
                     placeholder="Q1 Content Campaign"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Website URL
+                </label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
+                  <input
+                    type="url"
+                    value={formData.website || ''}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-[#533de3]/50"
+                    placeholder="https://example.com"
                   />
                 </div>
               </div>

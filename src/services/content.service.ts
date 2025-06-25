@@ -6,14 +6,15 @@ import { supabase } from './supabase.service';
 import { ResearchContent, BlogContent, PodcastContent, AudioContent } from '../types/project.types';
 
 export class ContentService {
-  async generateResearch(projectId: string, keyword: string): Promise<ResearchContent> {
+  async generateResearch(projectId: string, keyword: string, website?: string): Promise<ResearchContent> {
     try {
       console.log('ContentService: Starting research generation for:', keyword);
       console.log('ContentService: Project ID:', projectId);
+      console.log('ContentService: Website:', website);
       
       // Call Perplexity API
       console.log('ContentService: Calling Perplexity API...');
-      const research = await perplexityService.generateResearch(keyword);
+      const research = await perplexityService.generateResearch(keyword, website);
       console.log('ContentService: Research received from Perplexity');
       
       // Save to Supabase
@@ -33,14 +34,15 @@ export class ContentService {
     }
   }
 
-  async generateBlog(projectId: string, keyword: string, research: ResearchContent): Promise<BlogContent> {
+  async generateBlog(projectId: string, keyword: string, research: ResearchContent, website?: string): Promise<BlogContent> {
     try {
       console.log('ContentService: Starting blog generation for:', keyword);
       console.log('ContentService: Project ID:', projectId);
+      console.log('ContentService: Website:', website);
       
       // Use Perplexity API for blog generation (Anthropic has CORS issues)
       console.log('ContentService: Calling Perplexity API for blog...');
-      const blog = await perplexityService.generateBlog(keyword, research);
+      const blog = await perplexityService.generateBlog(keyword, research, website);
       console.log('ContentService: Blog received from Perplexity');
       
       // Save to Supabase

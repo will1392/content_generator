@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, RefreshCw, ArrowRight, Loader2, Image as ImageIcon, Maximize2 } from 'lucide-react';
+import { Download, RefreshCw, ArrowRight, ArrowLeft, Loader2, Image as ImageIcon, Maximize2 } from 'lucide-react';
 import { ImagesContent } from '../../types/project.types';
 import { toast } from 'react-toastify';
 
@@ -8,6 +8,7 @@ interface ImageGalleryProps {
   isLoading: boolean;
   onRegenerate: () => Promise<void>;
   onContinue: () => void;
+  onPrevious?: () => void;
 }
 
 export const ImageGallery: React.FC<ImageGalleryProps> = ({
@@ -15,6 +16,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
   isLoading,
   onRegenerate,
   onContinue,
+  onPrevious,
 }) => {
   const handleDownload = (imageUrl: string, filename: string) => {
     const a = document.createElement('a');
@@ -81,6 +83,15 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {onPrevious && (
+            <button
+              onClick={onPrevious}
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Previous
+            </button>
+          )}
           <button
             onClick={handleDownloadAll}
             className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"

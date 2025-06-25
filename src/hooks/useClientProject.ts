@@ -22,7 +22,7 @@ interface UseClientProjectReturn {
   selectProject: (project: ClientProject) => Promise<void>;
   selectContent: (content: ProjectContent) => void;
   createClient: (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => Promise<Client | null>;
-  createProject: (projectName: string, description?: string) => Promise<ClientProject | null>;
+  createProject: (projectName: string, description?: string, website?: string) => Promise<ClientProject | null>;
   createContent: (contentName: string, keyword: string) => Promise<ProjectContent | null>;
   updateContentStage: (stage: ProjectStage, data: any) => Promise<void>;
   autoSave: (stage: ProjectStage, data: any) => Promise<void>;
@@ -112,7 +112,7 @@ export const useClientProject = (): UseClientProjectReturn => {
     }
   }, [loadClients]);
 
-  const createProject = useCallback(async (projectName: string, description?: string) => {
+  const createProject = useCallback(async (projectName: string, description?: string, website?: string) => {
     if (!selectedClient) {
       toast.error('Please select a client first');
       return null;
@@ -124,6 +124,7 @@ export const useClientProject = (): UseClientProjectReturn => {
         client_id: selectedClient.id,
         project_name: projectName,
         description,
+        website,
         status: 'active'
       });
       
@@ -152,7 +153,8 @@ export const useClientProject = (): UseClientProjectReturn => {
       const newContent = await clientService.createProjectContent({
         client_project_id: selectedProject.id,
         content_name: contentName,
-        keyword
+        keyword,
+        website: selectedProject.website
       });
       
       if (newContent) {

@@ -1,6 +1,6 @@
 import { supabase } from './supabase.service';
 import { Client, ClientProject, ProjectContent, ClientWithProjects } from '../types/client.types';
-import { ProjectStage } from '../types/project.types';
+import { ProjectStage, TopicalMap, TopicalMapKeyword } from '../types/project.types';
 
 export class ClientService {
   // Client Management
@@ -175,11 +175,30 @@ export class ClientService {
     }
   }
 
+  async getClientProject(projectId: string): Promise<ClientProject | null> {
+    try {
+      const { data, error } = await supabase
+        .from('client_projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching client project:', error);
+      throw error;
+    }
+  }
+
   // Content Management
   async createProjectContent(contentData: {
     client_project_id: string;
     content_name: string;
     keyword: string;
+    website?: string;
+    topical_map_id?: string;
+    topical_map_keyword_id?: string;
   }): Promise<ProjectContent | null> {
     try {
       const { data, error } = await supabase
@@ -314,6 +333,133 @@ export class ClientService {
       return data || [];
     } catch (error) {
       console.error('Error searching content:', error);
+      throw error;
+    }
+  }
+
+  // Topical Map Management
+  async createTopicalMap(mapData: {
+    client_project_id: string;
+    title: string;
+    topic: string;
+    location: string;
+    description?: string;
+    keywords: TopicalMapKeyword[];
+  }): Promise<TopicalMap | null> {
+    try {
+      console.log('Creating topical map with data:', mapData);
+      console.log('Keywords count:', mapData.keywords.length);
+      console.log('First keyword sample:', mapData.keywords[0]);
+      
+      const { data, error } = await supabase
+        .from('topical_maps')
+        .insert([{
+          ...mapData,
+          total_keywords: mapData.keywords.length,
+          completed_keywords: 0,
+          keywords: mapData.keywords
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error creating topical map:', error);
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+      
+      console.log('Topical map created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Error creating topical map:', error);
+      throw error;
+    }
+  }
+
+  async getProjectTopicalMaps(clientProjectId: string): Promise<TopicalMap[]> {
+    try {
+      const { data, error } = await supabase
+        .from('topical_maps')
+        .select('*')
+        .eq('client_project_id', clientProjectId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching topical maps:', error);
+      throw error;
+    }
+  }
+
+  async getTopicalMap(mapId: string): Promise<TopicalMap | null> {
+    try {
+      const { data, error } = await supabase
+        .from('topical_maps')
+        .select('*')
+        .eq('id', mapId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching topical map:', error);
+      throw error;
+    }
+  }
+
+  async updateTopicalMapKeyword(
+    mapId: string, 
+    keywordId: string, 
+    updates: { contentCreated?: boolean; contentId?: string }
+  ): Promise<void> {
+    try {
+      // First get the current map
+      const map = await this.getTopicalMap(mapId);
+      if (!map) throw new Error('Topical map not found');
+
+      // Update the specific keyword
+      const updatedKeywords = map.keywords.map(keyword => 
+        keyword.id === keywordId 
+          ? { ...keyword, ...updates }
+          : keyword
+      );
+
+      // Calculate new completion count
+      const completedCount = updatedKeywords.filter(k => k.contentCreated).length;
+
+      // Update the map
+      const { error } = await supabase
+        .from('topical_maps')
+        .update({
+          keywords: updatedKeywords,
+          completed_keywords: completedCount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', mapId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating topical map keyword:', error);
+      throw error;
+    }
+  }
+
+  async deleteTopicalMap(mapId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('topical_maps')
+        .delete()
+        .eq('id', mapId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting topical map:', error);
       throw error;
     }
   }
